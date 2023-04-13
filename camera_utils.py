@@ -62,8 +62,11 @@ class StreamCallbacks:
         def save(image, key):
             if save.counter % save_every_k == 0:
                 image_name = f'{save.counter:04}.{extention}'
-                cv2.imwrite(osp.join(save_folder, image_name), image)
-                print(f"Saved image {image_name}")
+                saved = cv2.imwrite(osp.join(save_folder, image_name), image)
+                if saved:
+                    print(f"Saved image {image_name}")
+                else:
+                    print("Could not save image")
                 save.counter += 1
         save.counter = 0
         return save
@@ -72,8 +75,11 @@ class StreamCallbacks:
         def save(image, key):
             if key == save_key:
                 image_name = f'{save.counter:04}.{extention}'
-                cv2.imwrite(osp.join(save_folder, image_name), image)
-                print(f"Saved image {image_name}")
+                saved = cv2.imwrite(osp.join(save_folder, image_name), image)
+                if saved:
+                    print(f"Saved image {image_name}")
+                else:
+                    print("Could not save image")
                 save.counter += 1
             return key in (-1, save_key)
         save.counter = 0
