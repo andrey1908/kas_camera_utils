@@ -23,7 +23,7 @@ def get_fps(camera, duration=5):
     return fps
 
 
-def stream(camera, callbacks=None, window_name=""):
+def stream(camera, callbacks=None, window_name="stream"):
     if callbacks is None:
         callbacks = list()
     elif callable(callbacks):
