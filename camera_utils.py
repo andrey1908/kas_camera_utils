@@ -32,7 +32,8 @@ def stream(camera, callbacks=None, window_name="stream"):
     cv2.resizeWindow(window_name, (600, 300))
     key = -1
     while True:
-        image = camera()
+        camera_frames = camera()
+        image = camera_frames.pop("image")
         if image is None or image.size == 0:
             print("Could not get camera image\n")
             sleep(0.5)
@@ -40,7 +41,7 @@ def stream(camera, callbacks=None, window_name="stream"):
 
         continue_streaming = None
         for callback in callbacks:
-            ret = callback(image, key)
+            ret = callback(image, key, **camera_frames)
             if ret is not None:
                 continue_streaming = ret
 
@@ -59,7 +60,7 @@ class StreamCallbacks:
         cv2.flip(image, 1, dst=image)
 
     def get_save_every_k_callback(save_folder, save_every_k=1, extention='jpg'):
-        def save(image, key):
+        def save(image, key, **kwargs):
             if save.counter % save_every_k == 0:
                 image_name = f'{save.counter:04}.{extention}'
                 saved = cv2.imwrite(osp.join(save_folder, image_name), image)
@@ -72,7 +73,7 @@ class StreamCallbacks:
         return save
 
     def get_save_by_key_callback(save_folder, save_key=ord(' '), extention='jpg'):
-        def save(image, key):
+        def save(image, key, **kwargs):
             if key == save_key:
                 image_name = f'{save.counter:04}.{extention}'
                 saved = cv2.imwrite(osp.join(save_folder, image_name), image)

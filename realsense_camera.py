@@ -25,8 +25,13 @@ class RealsenseCamera:
         self.pipeline.stop()
 
     def __call__(self):
-        image = self.read()
-        return image
+        if self.enable_depth:
+            image, depth = self.read(read_depth=True)
+            camera_frames = {"image": image, "depth": depth}
+        else:
+            image = self.read()
+            camera_frames = {"image": image}
+        return camera_frames
 
     def read(self, read_color=True, read_depth=False):
         frames = self.pipeline.wait_for_frames()
