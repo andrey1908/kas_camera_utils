@@ -33,6 +33,8 @@ def stream(camera, callbacks=None, window_name="stream"):
     key = -1
     while True:
         camera_frames = camera()
+        if isinstance(camera_frames, np.ndarray):  # backward compatibility
+            camera_frames = {"image": camera_frames}
         image = camera_frames.pop("image")
         if image is None or image.size == 0:
             print("Could not get camera image\n")
