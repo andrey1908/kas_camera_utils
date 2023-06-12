@@ -30,8 +30,10 @@ def stream(camera, callbacks=None, window_name="stream"):
         callbacks = [callbacks]
     cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
     cv2.resizeWindow(window_name, (600, 300))
+
     key = -1
-    while True:
+    continue_streaming = True
+    while continue_streaming:
         camera_frames = camera()
         if isinstance(camera_frames, np.ndarray):  # backward compatibility
             camera_frames = {"image": camera_frames}
@@ -41,20 +43,20 @@ def stream(camera, callbacks=None, window_name="stream"):
             sleep(0.5)
             continue
 
-        continue_streaming = None
+        continue_streaming_is_set_by_callback = False
         for callback in callbacks:
             ret = callback(image, key, **camera_frames)
             if ret is not None:
-                continue_streaming = ret
+                continue_streaming = (continue_streaming and ret)
+                continue_streaming_is_set_by_callback = True
 
         cv2.imshow(window_name, image)
         key = cv2.waitKey(1)
 
-        if continue_streaming is None:
+        if not continue_streaming_is_set_by_callback:
             continue_streaming = (key == -1)
-        if not continue_streaming:
-            cv2.destroyAllWindows()
-            break
+
+    cv2.destroyAllWindows()
 
 
 class StreamCallbacks:
