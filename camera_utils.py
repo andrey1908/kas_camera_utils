@@ -6,7 +6,7 @@ import glob
 
 
 def get_image_resolution(camera):
-    image = camera()
+    image = camera.read()
     w = image.shape[1]
     h = image.shape[0]
     return w, h
@@ -17,7 +17,7 @@ def get_fps(camera, duration=5):
     now = start
     num_images = 0
     while now - start < duration:
-        camera()
+        camera.read()
         num_images += 1
         now = time()
     fps = num_images / duration
@@ -36,8 +36,6 @@ def stream(camera, callbacks=None, window_name="stream"):
     continue_streaming = True
     while continue_streaming:
         camera_frames = camera()
-        if isinstance(camera_frames, np.ndarray):  # backward compatibility
-            camera_frames = {"image": camera_frames}
         image = camera_frames.pop("image")
         if image is None or image.size == 0:
             print("Could not get camera image\n")
