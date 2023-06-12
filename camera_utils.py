@@ -2,6 +2,7 @@ import numpy as np
 import cv2
 from time import time, sleep
 import os.path as osp
+import glob
 
 
 def get_image_resolution(camera):
@@ -59,35 +60,70 @@ def stream(camera, callbacks=None, window_name="stream"):
     cv2.destroyAllWindows()
 
 
+class ImagesSavePathsGenerator:
+    def __init__(self, save_folder, extention, continue_saving=False,
+            start_from=0):
+        self.save_folder = save_folder
+        self.extention = extention
+        self.continue_saving = continue_saving
+        self.start_from = start_from
+
+        if self.continue_saving:
+            files = glob.glob(f"{save_folder}/????.{extention}")
+            max_num = 0
+            for file in files:
+                num = osp.splitext(osp.basename(file))[0]
+                if num.isdigit():
+                    num = int(num)
+                    max_num = max(max_num, num)
+            self.counter = max_num + 1
+        else:
+            self.counter = self.start_from
+
+    def __call__(self):
+        next_image_save_path = f'{self.counter:04}.{self.extention}'
+        next_image_save_path = osp.join(self.save_folder, next_image_save_path)
+        self.counter += 1
+        return next_image_save_path
+
+
 class StreamCallbacks:
     def flip(image, key):
         cv2.flip(image, 1, dst=image)
 
-    def get_save_every_k_callback(save_folder, save_every_k=1, extention='jpg'):
+    def get_save_every_k_callback(save_folder, save_every_k=1, extention='jpg',
+            continue_saving=False, start_from=0):
+        images_save_paths_generator = ImagesSavePathsGenerator(save_folder, extention,
+            continue_saving=continue_saving, start_from=start_from)
+
         def save(image, key, **kwargs):
             if save.counter % save_every_k == 0:
-                image_name = f'{save.counter:04}.{extention}'
-                saved = cv2.imwrite(osp.join(save_folder, image_name), image)
+                image_path = images_save_paths_generator()
+                saved = cv2.imwrite(image_path, image)
                 if saved:
-                    print(f"Saved image {image_name}")
+                    print(f"Saved image {osp.basename(image_path)}")
                 else:
                     print("Could not save image")
-                save.counter += 1
         save.counter = 0
+
         return save
 
-    def get_save_by_key_callback(save_folder, save_key=ord(' '), extention='jpg'):
+    def get_save_by_key_callback(save_folder, save_key=ord(' '), extention='jpg',
+            continue_saving=False, start_from=0):
+        images_save_paths_generator = ImagesSavePathsGenerator(save_folder, extention,
+            continue_saving=continue_saving, start_from=start_from)
+
         def save(image, key, **kwargs):
             if key == save_key:
-                image_name = f'{save.counter:04}.{extention}'
-                saved = cv2.imwrite(osp.join(save_folder, image_name), image)
+                image_path = images_save_paths_generator()
+                saved = cv2.imwrite(image_path, image)
                 if saved:
-                    print(f"Saved image {image_name}")
+                    print(f"Saved image {osp.basename(image_path)}")
                 else:
                     print("Could not save image")
-                save.counter += 1
-            return key in (-1, save_key)
-        save.counter = 0
+            continue_streaming = key in (-1, save_key)
+            return continue_streaming
+
         return save
 
 
