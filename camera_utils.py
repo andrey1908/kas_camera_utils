@@ -61,7 +61,7 @@ def stream(camera, callbacks=None, window_name="stream"):
 
 
 class ImagesSavePathsGenerator:
-    def __init__(self, save_folder, extention, continue_saving=False,
+    def __init__(self, save_folder, extention='jpg', continue_saving=False,
             start_from=0):
         self.save_folder = save_folder
         self.extention = extention
@@ -91,11 +91,7 @@ class StreamCallbacks:
     def flip(image, key):
         cv2.flip(image, 1, dst=image)
 
-    def get_save_every_k_callback(save_folder, save_every_k=1, extention='jpg',
-            continue_saving=False, start_from=0):
-        images_save_paths_generator = ImagesSavePathsGenerator(save_folder, extention,
-            continue_saving=continue_saving, start_from=start_from)
-
+    def get_save_every_k_callback(images_save_paths_generator, save_every_k=1):
         def save(image, key, **kwargs):
             if save.counter % save_every_k == 0:
                 image_path = images_save_paths_generator()
@@ -104,15 +100,11 @@ class StreamCallbacks:
                     print(f"Saved image {osp.basename(image_path)}")
                 else:
                     print("Could not save image")
+            save.counter += 1
         save.counter = 0
-
         return save
 
-    def get_save_by_key_callback(save_folder, save_key=ord(' '), extention='jpg',
-            continue_saving=False, start_from=0):
-        images_save_paths_generator = ImagesSavePathsGenerator(save_folder, extention,
-            continue_saving=continue_saving, start_from=start_from)
-
+    def get_save_by_key_callback(images_save_paths_generator, save_key=ord(' ')):
         def save(image, key, **kwargs):
             if key == save_key:
                 image_path = images_save_paths_generator()
@@ -123,7 +115,6 @@ class StreamCallbacks:
                     print("Could not save image")
             continue_streaming = key in (-1, save_key)
             return continue_streaming
-
         return save
 
 
