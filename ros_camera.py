@@ -8,21 +8,35 @@ import numpy as np
 
 
 class RosbagTopicReader:
-    def __init__(self, bag, topic):
+    def __init__(self, bag, topic, auto_repeat=False):
         self.bag = bag
         self.topic = topic
+        self.auto_repeat = auto_repeat
+
         self.reader = (msg for topic, msg, t in self.bag.read_messages(self.topic))
         self.next_msg = None
+
+        self.repeated = False
 
     def __iter__(self):
         return self
 
     def __next__(self):
         if self.next_msg is not None:
-            next_msg = self.next_msg
+            msg = self.next_msg
             self.next_msg = None
-            return next_msg
-        return next(self.reader)
+        else:
+            self.repeated = False
+            try:
+                msg = next(self.reader)
+            except StopIteration:
+                if self.auto_repeat:
+                    self.reset()
+                    msg = next(self.reader)
+                    self.repeated = True
+                else:
+                    raise
+        return msg
 
     def reset(self):
         self.reader = (msg for topic, msg, t in self.bag.read_messages(self.topic))
@@ -49,10 +63,12 @@ class RosCamera:
             self.bag = rosbag.Bag(self.rosbag_file, 'r')
             if self.enable_image:
                 camera_info_reader = RosbagTopicReader(self.bag, self.camera_info_topic)
-                self.image_reader = RosbagTopicReader(self.bag, self.image_topic)
+                self.image_reader = RosbagTopicReader(
+                    self.bag, self.image_topic, auto_repeat=True)
             if self.enable_depth:
                 depth_info_reader = RosbagTopicReader(self.bag, self.depth_info_topic)
-                self.depth_reader = RosbagTopicReader(self.bag, self.depth_topic)
+                self.depth_reader = RosbagTopicReader(
+                    self.bag, self.depth_topic, auto_repeat=True)
         else:
             rospy.init_node("ros_camera", anonymous=True)
             if self.enable_image:
@@ -109,11 +125,7 @@ class RosCamera:
         ret = list()
         if read_image:
             if self.enable_image:
-                try:
-                    image_msg = next(self.image_reader)
-                except StopIteration:
-                    self.image_reader.reset()
-                    image_msg = next(self.image_reader)
+                image_msg = next(self.image_reader)
                 if image_msg._type == "sensor_msgs/Image":
                     image = self.bridge.imgmsg_to_cv2(
                         image_msg, desired_encoding='passthrough')
@@ -129,11 +141,7 @@ class RosCamera:
 
         if read_depth:
             if self.enable_depth:
-                try:
-                    depth_msg = next(self.depth_reader)
-                except StopIteration:
-                    self.depth_reader.reset()
-                    depth_msg = next(self.depth_reader)
+                depth_msg = next(self.depth_reader)
                 if depth_msg._type == "sensor_msgs/Image":
                     depth = self.bridge.imgmsg_to_cv2(
                         depth_msg, desired_encoding='passthrough')
