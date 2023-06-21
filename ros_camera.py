@@ -7,6 +7,32 @@ import cv2
 import numpy as np
 
 
+class RosbagTopicReader:
+    def __init__(self, bag, topic):
+        self.bag = bag
+        self.topic = topic
+        self.reader = (msg for topic, msg, t in self.bag.read_messages(self.topic))
+        self.next_msg = None
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.next_msg is not None:
+            next_msg = self.next_msg
+            self.next_msg = None
+            return next_msg
+        return next(self.reader)
+
+    def reset(self):
+        self.reader = (msg for topic, msg, t in self.bag.read_messages(self.topic))
+
+    def peek(self):
+        if self.next_msg is None:
+            self.next_msg = next(self)
+        return self.next_msg
+
+
 class RosCamera:
     def __init__(self, camera_info_topic=None, image_topic=None,
             depth_info_topic=None, depth_topic=None, rosbag_file=None):
@@ -22,11 +48,11 @@ class RosCamera:
         if self.rosbag_file is not None:
             self.bag = rosbag.Bag(self.rosbag_file, 'r')
             if self.enable_image:
-                camera_info_reader = self._get_rosbag_topic_reader(self.camera_info_topic)
-                self.image_reader = self._get_rosbag_topic_reader(self.image_topic)
+                camera_info_reader = RosbagTopicReader(self.bag, self.camera_info_topic)
+                self.image_reader = RosbagTopicReader(self.bag, self.image_topic)
             if self.enable_depth:
-                depth_info_reader = self._get_rosbag_topic_reader(self.depth_info_topic)
-                self.depth_reader = self._get_rosbag_topic_reader(self.depth_topic)
+                depth_info_reader = RosbagTopicReader(self.bag, self.depth_info_topic)
+                self.depth_reader = RosbagTopicReader(self.bag, self.depth_topic)
         else:
             rospy.init_node("ros_camera", anonymous=True)
             if self.enable_image:
@@ -53,10 +79,6 @@ class RosCamera:
     def __del__(self):
         if hasattr(self, "bag"):
             self.bag.close()
-
-    def _get_rosbag_topic_reader(self, topic):
-        reader = (msg for topic, msg, t in self.bag.read_messages(topic))
-        return reader
 
     def _get_topic_reader(self, topic):
         topic_type, _, _ = rostopic.get_topic_class(topic)
@@ -90,7 +112,7 @@ class RosCamera:
                 try:
                     image_msg = next(self.image_reader)
                 except StopIteration:
-                    self.image_reader = self._get_rosbag_topic_reader(self.image_topic)
+                    self.image_reader.reset()
                     image_msg = next(self.image_reader)
                 if image_msg._type == "sensor_msgs/Image":
                     image = self.bridge.imgmsg_to_cv2(
@@ -110,7 +132,7 @@ class RosCamera:
                 try:
                     depth_msg = next(self.depth_reader)
                 except StopIteration:
-                    self.depth_reader = self._get_rosbag_topic_reader(self.depth_topic)
+                    self.depth_reader.reset()
                     depth_msg = next(self.depth_reader)
                 if depth_msg._type == "sensor_msgs/Image":
                     depth = self.bridge.imgmsg_to_cv2(
