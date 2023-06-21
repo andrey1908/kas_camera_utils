@@ -49,12 +49,16 @@ class RosbagTopicReader:
 
 class RosCamera:
     def __init__(self, camera_info_topic=None, image_topic=None,
-            depth_info_topic=None, depth_topic=None, rosbag_file=None):
+            depth_info_topic=None, depth_topic=None, rosbag_file=None,
+            exact_sync=True):
         self.camera_info_topic = camera_info_topic
         self.image_topic = image_topic
         self.depth_info_topic = depth_info_topic
         self.depth_topic = depth_topic
         self.rosbag_file = rosbag_file
+        self.exact_sync = exact_sync
+
+        assert not (self.exact_sync and rosbag_file is None)
 
         self.enable_image = bool(self.camera_info_topic and self.image_topic)
         self.enable_depth = bool(self.depth_info_topic and self.depth_topic)
@@ -102,6 +106,24 @@ class RosCamera:
             msg = rospy.wait_for_message(topic, topic_type)
             yield msg
 
+    def _sync_rosbag_topic_readers(self):
+        if self.enable_image and self.enable_depth:
+            next_image_stamp = self.image_reader.peek().header.stamp
+            next_depth_stamp = self.depth_reader.peek().header.stamp
+            while next_image_stamp != next_depth_stamp:
+                if next_image_stamp < next_depth_stamp:
+                    next(self.image_reader)
+                    if self.image_reader.repeated:
+                        self.depth_reader.reset()
+                        next_depth_stamp = self.depth_reader.peek().header.stamp
+                    next_image_stamp = self.image_reader.peek().header.stamp
+                else:
+                    next(self.depth_reader)
+                    if self.depth_reader.repeated:
+                        self.image_reader.reset()
+                        next_image_stamp = self.image_reader.peek().header.stamp
+                    next_depth_stamp = self.depth_reader.peek().header.stamp
+
     def start(self):
         pass
 
@@ -121,6 +143,9 @@ class RosCamera:
         # time.sleep(0.1)
         self.last_image_stamp = None
         self.last_depth_stamp = None
+
+        if self.exact_sync:
+            self._sync_rosbag_topic_readers()
 
         ret = list()
         if read_image:
