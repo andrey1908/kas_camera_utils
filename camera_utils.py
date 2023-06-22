@@ -24,7 +24,7 @@ def get_fps(camera, duration=5):
     return fps
 
 
-def stream(camera, callbacks=None, window_name="stream"):
+def stream(camera, callbacks=None, pause_key=ord('p'), window_name="stream"):
     if callbacks is None:
         callbacks = list()
     elif callable(callbacks):
@@ -51,9 +51,11 @@ def stream(camera, callbacks=None, window_name="stream"):
 
         cv2.imshow(window_name, image)
         key = cv2.waitKey(1)
+        if key == pause_key:
+            key = cv2.waitKey(0)
 
         if not continue_streaming_is_set_by_callback:
-            continue_streaming = (key == -1)
+            continue_streaming = (key == -1) or (key == pause_key)
 
     cv2.destroyAllWindows()
 
