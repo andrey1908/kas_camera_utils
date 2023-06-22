@@ -40,6 +40,8 @@ class RosbagTopicReader:
 
     def reset(self):
         self.reader = (msg for topic, msg, t in self.bag.read_messages(self.topic))
+        self.next_msg = None
+        self.repeated = False
 
     def peek(self):
         if self.next_msg is None:
@@ -117,7 +119,7 @@ class RosCamera:
                         self.depth_reader.reset()
                         next_depth_stamp = self.depth_reader.peek().header.stamp
                     next_image_stamp = self.image_reader.peek().header.stamp
-                else:
+                elif next_image_stamp > next_depth_stamp:
                     next(self.depth_reader)
                     if self.depth_reader.repeated:
                         self.image_reader.reset()
