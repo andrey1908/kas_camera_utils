@@ -36,19 +36,30 @@ def stream(camera, callbacks=None, pause_key=ord('p'), window_name="stream"):
     continue_streaming = True
     while continue_streaming:
         camera_frames = camera()
-        image = camera_frames.pop("image")
-        if image is None or image.size == 0:
-            print("Could not get camera image\n")
+        if len(camera_frames) == 0:
+            print(f"Could not read camera frames\n")
             sleep(0.5)
             continue
+        for name, frame in camera_frames.items():
+            if frame is None or frame.size == 0:
+                print(f"Could not read camera frame '{name}'\n")
+                sleep(0.5)
+                continue
+
+        if "image" not in camera_frames:
+            image_shape = next(iter(camera_frames.values())).shape[:2] + (3,)
+            image = np.zeros(image_shape, dtype=np.uint8)
+            camera_frames["image"] = image
 
         continue_streaming_is_set_by_callback = False
         for callback in callbacks:
-            ret = callback(image, key, **camera_frames)
-            if ret is not None:
-                continue_streaming = (continue_streaming and ret)
+            # camera_frames always contain "image" frame
+            callback_continue_streaming = callback(key, **camera_frames)
+            if callback_continue_streaming is not None:
+                continue_streaming = (continue_streaming and callback_continue_streaming)
                 continue_streaming_is_set_by_callback = True
 
+        image = camera_frames["image"]
         cv2.imshow(window_name, image)
         key = cv2.waitKey(1)
         if key == pause_key:
@@ -88,11 +99,11 @@ class ImagesSavePathsGenerator:
 
 
 class StreamCallbacks:
-    def flip(image, key):
+    def flip(key, image, **kwargs):
         cv2.flip(image, 1, dst=image)
 
     def get_save_every_k_callback(images_save_paths_generator, save_every_k=1):
-        def save(image, key, **kwargs):
+        def save(key, image, **kwargs):
             if save.counter % save_every_k == 0:
                 image_path = images_save_paths_generator()
                 saved = cv2.imwrite(image_path, image)
@@ -105,7 +116,7 @@ class StreamCallbacks:
         return save
 
     def get_save_by_key_callback(images_save_paths_generator, save_key=ord(' ')):
-        def save(image, key, **kwargs):
+        def save(key, image, **kwargs):
             if key == save_key:
                 image_path = images_save_paths_generator()
                 saved = cv2.imwrite(image_path, image)
