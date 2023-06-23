@@ -124,7 +124,10 @@ class StreamCallbacks:
                     print(f"Saved image {osp.basename(image_path)}")
                 else:
                     print("Could not save image")
-            continue_streaming = key in (-1, save_key)
+            if key == save_key:
+                continue_streaming = True
+            else:
+                continue_streaming = None
             return continue_streaming
         return save
 
