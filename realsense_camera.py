@@ -40,6 +40,14 @@ class RealsenseCamera:
     def stop(self):
         self.pipeline.stop()
 
+    def is_active(self):
+        try:
+            self.pipeline.get_active_profile()
+        except RuntimeError:
+            return False
+        else:
+            return True
+
     def __call__(self):
         frames = dict()
         frames_list = self.read(read_image=True, read_depth=True)

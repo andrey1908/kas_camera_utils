@@ -132,6 +132,9 @@ class RosCamera:
     def stop(self):
         pass
 
+    def is_active(self):
+        return True
+
     def __call__(self):
         frames = dict()
         frames_list = self.read(read_image=True, read_depth=True)
