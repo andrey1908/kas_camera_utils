@@ -126,14 +126,18 @@ class RosCamera:
                         next_image_stamp = self.image_reader.peek().header.stamp
                     next_depth_stamp = self.depth_reader.peek().header.stamp
 
+
+    def is_active(self):
+        return True
+
     def start(self):
+        pass
+
+    def try_start(self):
         pass
 
     def stop(self):
         pass
-
-    def is_active(self):
-        return True
 
     def __call__(self):
         frames = dict()
@@ -145,7 +149,7 @@ class RosCamera:
     
     def read(self, read_image=True, read_depth=False):
         import time
-        # time.sleep(0.1)
+        # time.sleep(0.02)
         self.last_image_stamp = None
         self.last_depth_stamp = None
 

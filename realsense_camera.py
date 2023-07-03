@@ -34,12 +34,6 @@ class RealsenseCamera:
             self.depth_scale = depth_sensor.get_depth_scale()
         self.stop()
 
-    def start(self):
-        self.pipeline.start(self.config)
-
-    def stop(self):
-        self.pipeline.stop()
-
     def is_active(self):
         try:
             self.pipeline.get_active_profile()
@@ -47,6 +41,16 @@ class RealsenseCamera:
             return False
         else:
             return True
+
+    def start(self):
+        self.pipeline.start(self.config)
+
+    def try_start(self):
+        if not self.is_active():
+            self.start()
+
+    def stop(self):
+        self.pipeline.stop()
 
     def __call__(self):
         frames = dict()
