@@ -74,7 +74,7 @@ def stream(camera, callbacks=None, pause_key=ord('p'), window_name="stream"):
 class ImagesSavePathsGenerator:
     def __init__(self, save_folder, extention='jpg', continue_saving=False,
             start_from=0):
-        self.save_folder = save_folder
+        self.save_folder = osp.expanduser(save_folder)
         self.extention = extention
         self.continue_saving = continue_saving
         self.start_from = start_from
