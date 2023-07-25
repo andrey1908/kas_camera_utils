@@ -86,16 +86,12 @@ class RosCamera:
 
         if self.enable_image:
             camera_info_msg = next(camera_info_reader)
-            self.K = camera_info_msg.K
-            self.D = camera_info_msg.D
-            self.K = np.array(self.K).reshape(3, 3)
-            self.D = np.array(self.D)
+            self.K = np.array(camera_info_msg.K).reshape(3, 3)
+            self.D = np.array(camera_info_msg.D)
         if self.enable_depth:
             depth_info_msg = next(depth_info_reader)
-            self.depth_K = depth_info_msg.K
-            self.depth_D = depth_info_msg.D
-            self.depth_K = np.array(self.depth_K).reshape(3, 3)
-            self.depth_D = np.array(self.depth_D)
+            self.depth_K = np.array(depth_info_msg.K).reshape(3, 3)
+            self.depth_D = np.array(depth_info_msg.D)
         self.bridge = CvBridge()
 
     def __del__(self):
