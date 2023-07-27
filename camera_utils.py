@@ -68,7 +68,7 @@ def stream(camera, callbacks=None, pause_key=ord('p'), window_name="stream"):
         if not continue_streaming_is_set_by_callback:
             continue_streaming = (key == -1) or (key == pause_key)
 
-    cv2.destroyAllWindows()
+    cv2.destroyWindow(window_name)
 
 
 class ImagesSavePathsGenerator:
