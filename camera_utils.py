@@ -24,7 +24,8 @@ def get_fps(camera, duration=5):
     return fps
 
 
-def stream(camera, callbacks=None, pause_key=ord('p'), window_name="stream"):
+def stream(camera, callbacks=None, pause_key=ord('p'), step_key=ord('s'),
+        window_name="stream"):
     if callbacks is None:
         callbacks = list()
     elif callable(callbacks):
@@ -34,39 +35,49 @@ def stream(camera, callbacks=None, pause_key=ord('p'), window_name="stream"):
 
     key = -1
     continue_streaming = True
+    paused = False
+    step = False
     while continue_streaming:
-        camera_frames = camera()
-        if len(camera_frames) == 0:
-            print(f"Could not read camera frames\n")
-            sleep(0.5)
-            continue
-        for name, frame in camera_frames.items():
-            if frame is None or frame.size == 0:
-                print(f"Could not read camera frame '{name}'\n")
+        if not paused or step:
+            camera_frames = camera()
+            if len(camera_frames) == 0:
+                print(f"Could not read camera frames\n")
                 sleep(0.5)
                 continue
+            for name, frame in camera_frames.items():
+                if frame is None or frame.size == 0:
+                    print(f"Could not read camera frame '{name}'\n")
+                    sleep(0.5)
+                    continue
 
-        if "image" not in camera_frames:
-            image_shape = next(iter(camera_frames.values())).shape[:2] + (3,)
-            image = np.zeros(image_shape, dtype=np.uint8)
-            camera_frames["image"] = image
+            if "image" not in camera_frames:
+                image_shape = next(iter(camera_frames.values())).shape[:2] + (3,)
+                image = np.zeros(image_shape, dtype=np.uint8)
+                camera_frames["image"] = image
 
-        continue_streaming_is_set_by_callback = False
-        for callback in callbacks:
-            # camera_frames always contain "image" frame
-            callback_continue_streaming = callback(key, **camera_frames)
-            if callback_continue_streaming is not None:
-                continue_streaming = (continue_streaming and callback_continue_streaming)
-                continue_streaming_is_set_by_callback = True
+            continue_streaming_is_set_by_callback = False
+            for callback in callbacks:
+                # camera_frames always contain "image" frame
+                callback_continue_streaming = callback(key, **camera_frames)
+                if callback_continue_streaming is not None:
+                    continue_streaming = (continue_streaming and callback_continue_streaming)
+                    continue_streaming_is_set_by_callback = True
 
-        image = camera_frames["image"]
-        cv2.imshow(window_name, image)
-        key = cv2.waitKey(1)
-        if key == pause_key:
-            key = cv2.waitKey(0)
+            image = camera_frames["image"]
+            cv2.imshow(window_name, image)
+            step = False
 
+        if not paused:
+            key = cv2.waitKey(1)
+        else:
+            key = cv2.waitKey(10)  # to prevent busy wait when paused
         if not continue_streaming_is_set_by_callback:
-            continue_streaming = (key == -1) or (key == pause_key)
+            continue_streaming = (key == -1) or (key == pause_key) or (key == step_key)
+
+        if key == pause_key:
+            paused = not paused
+        if key == step_key:
+            step = True
 
     cv2.destroyWindow(window_name)
 
