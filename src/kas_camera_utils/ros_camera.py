@@ -158,10 +158,10 @@ class RosCamera:
                 image_msg = next(self.image_reader)
                 if image_msg._type == "sensor_msgs/Image":
                     image = self.bridge.imgmsg_to_cv2(
-                        image_msg, desired_encoding='passthrough')
+                        image_msg, desired_encoding='bgr8')
                 elif image_msg._type == "sensor_msgs/CompressedImage":
                     image = self.bridge.compressed_imgmsg_to_cv2(
-                        image_msg, desired_encoding='passthrough')
+                        image_msg, desired_encoding='bgr8')
                 else:
                     raise RuntimeError
                 self.last_image_stamp = image_msg.header.stamp

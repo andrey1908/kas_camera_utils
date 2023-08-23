@@ -82,36 +82,12 @@ def stream(camera, callbacks=None, pause_key=ord('p'), step_key=ord('s'),
     cv2.destroyWindow(window_name)
 
 
-class ImagesSavePathsGenerator:
-    def __init__(self, save_folder, extention='jpg', continue_saving=False,
-            start_from=0):
-        self.save_folder = osp.expanduser(save_folder)
-        self.extention = extention
-        self.continue_saving = continue_saving
-        self.start_from = start_from
-
-        if self.continue_saving:
-            files = glob.glob(f"{save_folder}/????.{extention}")
-            max_num = 0
-            for file in files:
-                num = osp.splitext(osp.basename(file))[0]
-                if num.isdigit():
-                    num = int(num)
-                    max_num = max(max_num, num)
-            self.counter = max_num + 1
-        else:
-            self.counter = self.start_from
-
-    def __call__(self):
-        next_image_save_path = f'{self.counter:04}.{self.extention}'
-        next_image_save_path = osp.join(self.save_folder, next_image_save_path)
-        self.counter += 1
-        return next_image_save_path
-
-
 class StreamCallbacks:
-    def flip(key, image, **kwargs):
+    def flip_lr(key, image, **kwargs):
         cv2.flip(image, 1, dst=image)
+
+    def flip_tb(key, image, **kwargs):
+        cv2.flip(image, 0, dst=image)
 
     def get_save_every_k_callback(images_save_paths_generator, save_every_k=1):
         def save(key, image, **kwargs):
