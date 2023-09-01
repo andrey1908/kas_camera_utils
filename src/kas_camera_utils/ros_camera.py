@@ -52,46 +52,54 @@ class RosbagTopicReader:
 class RosCamera:
     def __init__(self, camera_info_topic=None, image_topic=None,
             depth_info_topic=None, depth_topic=None, rosbag_file=None,
-            exact_sync=True):
+            exact_sync=True, auto_repeat=False):
         self.camera_info_topic = camera_info_topic
         self.image_topic = image_topic
         self.depth_info_topic = depth_info_topic
         self.depth_topic = depth_topic
         self.rosbag_file = rosbag_file
         self.exact_sync = exact_sync
+        self.auto_repeat = auto_repeat
 
         assert not (self.exact_sync and rosbag_file is None)
 
-        self.enable_image = bool(self.camera_info_topic and self.image_topic)
-        self.enable_depth = bool(self.depth_info_topic and self.depth_topic)
+        self.enable_image = self.image_topic is not None
+        self.enable_depth = self.depth_topic is not None
 
         if self.rosbag_file is not None:
             self.bag = rosbag.Bag(self.rosbag_file, 'r')
-            if self.enable_image:
+            if self.camera_info_topic is not None:
                 camera_info_reader = RosbagTopicReader(self.bag, self.camera_info_topic)
-                self.image_reader = RosbagTopicReader(
-                    self.bag, self.image_topic, auto_repeat=True)
-            if self.enable_depth:
+            if self.enable_image:
+                self.image_reader = RosbagTopicReader(self.bag, self.image_topic,
+                    auto_repeat=self.auto_repeat)
+
+            if self.depth_info_topic is not None:
                 depth_info_reader = RosbagTopicReader(self.bag, self.depth_info_topic)
-                self.depth_reader = RosbagTopicReader(
-                    self.bag, self.depth_topic, auto_repeat=True)
+            if self.enable_depth:
+                self.depth_reader = RosbagTopicReader(self.bag, self.depth_topic,
+                    auto_repeat=self.auto_repeat)
         else:
             rospy.init_node("ros_camera", anonymous=True)
-            if self.enable_image:
+            if self.camera_info_topic is not None:
                 camera_info_reader = self._get_topic_reader(self.camera_info_topic)
+            if self.enable_image:
                 self.image_reader = self._get_topic_reader(self.image_topic)
-            if self.enable_depth:
+
+            if self.depth_info_topic is not None:
                 depth_info_reader = self._get_topic_reader(self.depth_info_topic)
+            if self.enable_depth:
                 self.depth_reader = self._get_topic_reader(self.depth_topic)
 
-        if self.enable_image:
+        if self.camera_info_topic is not None:
             camera_info_msg = next(camera_info_reader)
             self.K = np.array(camera_info_msg.K).reshape(3, 3)
             self.D = np.array(camera_info_msg.D)
-        if self.enable_depth:
+        if self.depth_info_topic is not None:
             depth_info_msg = next(depth_info_reader)
             self.depth_K = np.array(depth_info_msg.K).reshape(3, 3)
             self.depth_D = np.array(depth_info_msg.D)
+
         self.bridge = CvBridge()
 
     def __del__(self):
