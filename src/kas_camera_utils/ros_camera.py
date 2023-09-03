@@ -63,32 +63,32 @@ class RosCamera:
 
         assert not (self.exact_sync and rosbag_file is None)
 
-        self.enable_image = self.image_topic is not None
-        self.enable_depth = self.depth_topic is not None
+        self.images_enabled = self.image_topic is not None
+        self.depth_enabled = self.depth_topic is not None
 
         if self.rosbag_file is not None:
             self.bag = rosbag.Bag(self.rosbag_file, 'r')
             if self.camera_info_topic is not None:
                 camera_info_reader = RosbagTopicReader(self.bag, self.camera_info_topic)
-            if self.enable_image:
+            if self.images_enabled:
                 self.image_reader = RosbagTopicReader(self.bag, self.image_topic,
                     auto_repeat=self.auto_repeat)
 
             if self.depth_info_topic is not None:
                 depth_info_reader = RosbagTopicReader(self.bag, self.depth_info_topic)
-            if self.enable_depth:
+            if self.depth_enabled:
                 self.depth_reader = RosbagTopicReader(self.bag, self.depth_topic,
                     auto_repeat=self.auto_repeat)
         else:
             rospy.init_node("ros_camera", anonymous=True)
             if self.camera_info_topic is not None:
                 camera_info_reader = self._get_topic_reader(self.camera_info_topic)
-            if self.enable_image:
+            if self.images_enabled:
                 self.image_reader = self._get_topic_reader(self.image_topic)
 
             if self.depth_info_topic is not None:
                 depth_info_reader = self._get_topic_reader(self.depth_info_topic)
-            if self.enable_depth:
+            if self.depth_enabled:
                 self.depth_reader = self._get_topic_reader(self.depth_topic)
 
         if self.camera_info_topic is not None:
@@ -113,7 +113,7 @@ class RosCamera:
             yield msg
 
     def _sync_rosbag_topic_readers(self):
-        if self.enable_image and self.enable_depth:
+        if self.images_enabled and self.depth_enabled:
             next_image_stamp = self.image_reader.peek().header.stamp
             next_depth_stamp = self.depth_reader.peek().header.stamp
             while next_image_stamp != next_depth_stamp:
@@ -162,7 +162,7 @@ class RosCamera:
 
         ret = list()
         if read_image:
-            if self.enable_image:
+            if self.images_enabled:
                 image_msg = next(self.image_reader)
                 if image_msg._type == "sensor_msgs/Image":
                     image = self.bridge.imgmsg_to_cv2(
@@ -178,7 +178,7 @@ class RosCamera:
                 ret.append(None)
 
         if read_depth:
-            if self.enable_depth:
+            if self.depth_enabled:
                 depth_msg = next(self.depth_reader)
                 if depth_msg._type == "sensor_msgs/Image":
                     depth = self.bridge.imgmsg_to_cv2(
