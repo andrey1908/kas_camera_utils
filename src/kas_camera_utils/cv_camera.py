@@ -2,8 +2,9 @@ import cv2
 
 
 class CvCamera:
-    def __init__(self, source):
+    def __init__(self, source, auto_repeat=False):
         self.source = source
+        self.auto_repeat = auto_repeat
 
         self.video = cv2.VideoCapture()
 
@@ -37,10 +38,13 @@ class CvCamera:
         ret, image = self.video.read()
         if not ret:
             if isinstance(self.source, str):
-                self.video.set(cv2.CAP_PROP_POS_FRAMES, 0)
-                ret, image = self.video.read()
-                if not ret:
-                    raise RuntimeError("Could not restart video")
+                if self.auto_repeat:
+                    self.video.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                    ret, image = self.video.read()
+                    if not ret:
+                        raise RuntimeError("Could not restart video")
+                else:
+                    raise StopIteration()
             else:
                 raise RuntimeError(f"Could not read from video device {self.source}")
         return image
